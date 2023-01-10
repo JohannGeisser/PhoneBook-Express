@@ -1,22 +1,58 @@
-const getAllPersons = (req, res) => {
-  res.status(200).send('Get all persons');
-};
+const Person = require('../model/person');
+const asyncWrapper = require('../middleware/async');
+const { createCustomError } = require('../errors/custom-error');
 
-const getPerson = (req, res) => {
-  res.status(200).send('Get one person');
-};
+const getAllPersons = asyncWrapper(async (req, res) => {
+  const persons = await Person.find();
+  res.status(200).json({ persons });
+});
 
-const createPerson = (req, res) => {
-  res.status(201).send('Create person');
-};
+const getPerson = asyncWrapper(async (req, res, next) => {
+  const { id: personID } = req.params;
+  const person = await Person.findOne({ _id: personID });
+  if (!person) {
+    return next(
+      createCustomError(`Person with ID: ${personID} not found`, 404)
+    );
+  }
+  res.status(200).json({ person });
+});
 
-const updatePerson = (req, res) => {
-  res.status(200).send('Update person');
-};
+const createPerson = asyncWrapper(async (req, res) => {
+  const person = await Person.create(req.body);
+  res.status(201).json({ person });
+});
 
-const deletePerson = (req, res) => {
-  res.status(200).send('Delete person');
-};
+const deletePerson = asyncWrapper(async (req, res) => {
+  const { id: personID } = req.params;
+  const person = await Person.findOneAndDelete({ _id: personID });
+
+  if (!person) {
+    return next(
+      createCustomError(`Person with ID: ${personID} not found`, 404)
+    );
+  }
+  res.sendStatus(204);
+});
+
+const updatePerson = asyncWrapper(async (req, res) => {
+  try {
+    const { id: PersonID } = req.params;
+
+    const person = await Person.findOneAndUpdate({ _id: PersonID }, req.body, {
+      new: true,
+      runValidators: true,
+    });
+    if (!person) {
+      return next(
+        createCustomError(`Person with ID: ${personID} not found`, 404)
+      );
+    }
+    res.status(200).json({ person });
+  } catch (error) {
+    res.status(500).json({ msg: error });
+  }
+});
 
 module.exports = {
   getAllPersons,
