@@ -23,7 +23,7 @@ const createPerson = asyncWrapper(async (req, res) => {
   res.status(201).json({ person });
 });
 
-const deletePerson = asyncWrapper(async (req, res) => {
+const deletePerson = asyncWrapper(async (req, res, next) => {
   const { id: personID } = req.params;
   const person = await Person.findOneAndDelete({ _id: personID });
 
@@ -35,23 +35,19 @@ const deletePerson = asyncWrapper(async (req, res) => {
   res.sendStatus(204);
 });
 
-const updatePerson = asyncWrapper(async (req, res) => {
-  try {
-    const { id: PersonID } = req.params;
+const updatePerson = asyncWrapper(async (req, res, next) => {
+  const { id: PersonID } = req.params;
+  const person = await Person.findOneAndUpdate({ _id: PersonID }, req.body, {
+    new: true,
+    runValidators: true,
+  });
 
-    const person = await Person.findOneAndUpdate({ _id: PersonID }, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!person) {
-      return next(
-        createCustomError(`Person with ID: ${personID} not found`, 404)
-      );
-    }
-    res.status(200).json({ person });
-  } catch (error) {
-    res.status(500).json({ msg: error });
+  if (!person) {
+    return next(
+      createCustomError(`Person with ID: ${PersonID} not found`, 404)
+    );
   }
+  res.status(200).json({ person });
 });
 
 module.exports = {
